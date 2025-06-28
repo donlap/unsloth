@@ -37,7 +37,11 @@ from .gemma3_sequence_classification import (
     Gemma3Config,
     Gemma3ForSequenceClassification,
     Gemma3TextConfig,
-    Gemma3TextForSequenceClassification
+    Gemma3TextForSequenceClassification,
+    Gemma3nConfig,
+    Gemma3nForSequenceClassification,
+    Gemma3nTextConfig,
+    Gemma3nTextForSequenceClassification
 )
 from peft import LoraConfig, TaskType, get_peft_model as _get_peft_model
 from peft import PeftModelForCausalLM
@@ -106,12 +110,20 @@ def patch_vision_models_for_sequence_classification():
     # Register the model classes
     AutoModelForSequenceClassification.register(MllamaConfig, MllamaForSequenceClassification)
     AutoModelForSequenceClassification.register(LlavaNextConfig, LlavaNextForSequenceClassification)
+    AutoModelForSequenceClassification.register(Gemma3Config, Gemma3ForSequenceClassification)
+    AutoModelForSequenceClassification.register(Gemma3TextConfig, Gemma3TextForSequenceClassification)
+    AutoModelForSequenceClassification.register(Gemma3nConfig, Gemma3nForSequenceClassification)
+    AutoModelForSequenceClassification.register(Gemma3nTextConfig, Gemma3nTextForSequenceClassification)
 
     # Also register in the config mapping if needed
     from transformers.models.auto.modeling_auto import MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING
     MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING.update({
         MllamaConfig: MllamaForSequenceClassification,
         LlavaNextConfig: LlavaNextForSequenceClassification
+        Gemma3Config: Gemma3ForSequenceClassification,
+        Gemma3TextConfig: Gemma3TextForSequenceClassification
+        Gemma3nConfig: Gemma3nForSequenceClassification,
+        Gemma3nTextConfig: Gemma3nTextForSequenceClassification
     })
 
     print("✅ Successfully patched MllamaForSequenceClassification and LlavaNextForSequenceClassification!")
