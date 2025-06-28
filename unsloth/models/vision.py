@@ -32,6 +32,7 @@ from ..kernels import (
 from ._utils import __version__
 from ._utils import *
 from ..save import patch_saving_functions
+from .auto_sequence_classification import MllamaForSequenceClassification, LlavaNextForSequenceClassification
 from .gemma3_sequence_classification import (
     Gemma3Config,
     Gemma3ForSequenceClassification,
