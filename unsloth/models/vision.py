@@ -121,7 +121,7 @@ def patch_vision_models_for_sequence_classification():
         MllamaConfig: MllamaForSequenceClassification,
         LlavaNextConfig: LlavaNextForSequenceClassification
         Gemma3Config: Gemma3ForSequenceClassification,
-        Gemma3TextConfig: Gemma3TextForSequenceClassification
+        Gemma3TextConfig: Gemma3TextForSequenceClassification,
         Gemma3nConfig: Gemma3nForSequenceClassification,
         Gemma3nTextConfig: Gemma3nTextForSequenceClassification
     })
