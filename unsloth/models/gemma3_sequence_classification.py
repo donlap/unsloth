@@ -205,7 +205,7 @@ class Gemma3TextForSequenceClassification(Gemma3PreTrainedModel):
 
 
 # ───────────────────── Gemma 3n multimodal variant (4 B+) ──────────────────────
-class Gemma3nForSequenceClassification(Gemma3Model):
+class Gemma3nForSequenceClassification(Gemma3nModel):
     config_class = Gemma3nConfig
     _no_split_modules = ["GemmaBlock"]
     keys_to_ignore_at_inference = ["past_key_values"]
