@@ -477,7 +477,8 @@ class FastBaseModel:
             patch_mllama_for_sequence_classification()
             # Create config with classification parameters
             config = create_config_for_classification(model_name, **kwargs)
-            del kwargs["attn_implementation"]
+            if ("attn_implementation" in kwargs):
+                del kwargs["attn_implementation"]
             del kwargs["num_labels"]
             model = auto_model.from_pretrained(
                 model_name,
