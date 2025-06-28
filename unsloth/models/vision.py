@@ -119,7 +119,7 @@ def patch_vision_models_for_sequence_classification():
     from transformers.models.auto.modeling_auto import MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING
     MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING.update({
         MllamaConfig: MllamaForSequenceClassification,
-        LlavaNextConfig: LlavaNextForSequenceClassification
+        LlavaNextConfig: LlavaNextForSequenceClassification,
         Gemma3Config: Gemma3ForSequenceClassification,
         Gemma3TextConfig: Gemma3TextForSequenceClassification,
         Gemma3nConfig: Gemma3nForSequenceClassification,
