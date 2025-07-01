@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "2025.6.8"
+from unsloth.version import __version__
 
 __all__ = [
     "SUPPORTS_BFLOAT16",
@@ -65,6 +65,7 @@ __all__ = [
     "process_vision_info",
     "unsloth_compile_transformers",
     "patch_fast_lora",
+    "validate_loftq_config",
 ]
 
 import torch
@@ -76,7 +77,7 @@ import contextlib
 import re
 import warnings, subprocess, re, inspect, psutil, os, math
 from unsloth_zoo.utils import Version
-from unsloth import DEVICE_TYPE
+from unsloth_zoo import DEVICE_TYPE
 
 from unsloth_zoo.tokenizer_utils import (
     patch_tokenizer as _patch_tokenizer,
@@ -280,7 +281,7 @@ pass
 
 from transformers import __version__ as transformers_version
 from transformers import PretrainedConfig
-model_architectures = ["llama", "mistral", "gemma", "gemma2", "qwen2", "granite", "qwen3", "qwen3_moe"]
+model_architectures = ["llama", "mistral", "gemma", "gemma2", "qwen2", "granite", "qwen3", "qwen3_moe", "falcon_h1"]
 
 for model_name in model_architectures:
     config_filepath = f"transformers.models.{model_name}.configuration_{model_name}"
@@ -551,8 +552,6 @@ UNSLOTH_COMPILE_IGNORE_ERRORS = os.environ.get("UNSLOTH_COMPILE_IGNORE_ERRORS", 
 # Just remove max_autotune_gemm warning
 import functools
 from torch._inductor.runtime.hints import DeviceProperties
-
-from unsloth import DEVICE_TYPE
 
 @functools.lru_cache(None)
 def is_big_gpu(index) -> bool:
@@ -1306,4 +1305,57 @@ if USE_MODELSCOPE:
     if importlib.util.find_spec("modelscope") is None:
         raise ImportError(f'You are using the modelscope hub, please install modelscope by `pip install modelscope -U`')
     pass
+pass
+
+
+def validate_loftq_config(loftq_config, lora_dropout, bias, init_lora_weights, model):
+    from peft import LoraConfig
+    if loftq_config is None: loftq_config = {}
+
+    signature = str(inspect.signature(LoraConfig))
+    SUPPORTS_LOFTQ  = "loftq_config" in signature
+    if lora_dropout != 0:
+        logger.warning_once(
+            f"Unsloth: Dropout = 0 is supported for fast patching. You are using dropout = {lora_dropout}.\n"\
+            f"Unsloth will patch all other layers, except LoRA matrices, causing a performance hit."
+        )
+    pass
+    if bias != "none":
+        logger.warning_once(
+            f"Unsloth: bias = `none` is supported for fast patching. You are using bias = {bias}.\n"\
+            f"Unsloth will patch all other layers, except LoRA matrices, causing a performance hit."
+        )
+    pass
+    if not (type(init_lora_weights) is bool or \
+        init_lora_weights == "gaussian" or init_lora_weights == "loftq"):
+        raise ValueError(
+            'Unsloth: `init_lora_weights` must be either [True, False, "gaussian", "loftq"].'
+        )
+    pass
+
+    if init_lora_weights == "loftq":
+        if not SUPPORTS_LOFTQ:
+            import peft
+            raise RuntimeError(
+                f"Unsloth: Your PEFT version of {peft.__version__} does not support LoftQ init.\n"\
+                "Please install PEFT 0.7.2 or higher.\n"\
+                "You can also install from source: `pip install git+https://github.com/huggingface/peft.git"
+            )
+        pass
+        if loftq_config == {}:
+            from peft import LoftQConfig
+            logger.warning_once(
+                "Unsloth: init_lora_weights = `loftq` is set, but `loftq_config` is None.\n"\
+                "We shall use `loftq_config = LoftQConfig(loftq_bits = 4, loftq_iter = 1)`."
+            )
+            loftq_config = LoftQConfig(loftq_bits = 4, loftq_iter = 1)
+        pass
+        if hasattr(model.config, "quantization_config"):
+            raise ValueError(
+                "Unsloth: You are using `loftq` init, yet `load_in_4bit = True` was set.\n"\
+                "Reload your model without any quantization by setting `load_in_4bit = False`."
+            )
+        pass
+    pass
+    return loftq_config
 pass
