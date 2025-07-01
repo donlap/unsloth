@@ -204,7 +204,7 @@ class Gemma3TextForSequenceClassification(Gemma3PreTrainedModel):
         )
 
 
-# ───────────────────── Gemma 3n multimodal variant (4 B+) ──────────────────────
+# ───────────────────── Gemma 3n multimodal ──────────────────────
 class Gemma3nForSequenceClassification(Gemma3nPreTrainedModel):
     """
     **Wraps** Gemma3nModel in `self.model` – keeps `model.*`
@@ -217,64 +217,59 @@ class Gemma3nForSequenceClassification(Gemma3nPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-
         self.model = Gemma3nModel(config)
         
-        self.score = nn.Linear(_txt(config).hidden_size, self.num_labels, bias=False)
+        text_config = getattr(config, "text_config", config)
+        self.score = nn.Linear(text_config.hidden_size, self.num_labels, bias=False)
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
     def get_input_embeddings(self):
-        return self.model.get_input_embeddings()
+        return self.model.language_model.get_input_embeddings()
 
     def set_input_embeddings(self, value):
-        self.model.set_input_embeddings(value)
+        self.model.language_model.set_input_embeddings(value)
 
     def get_output_embeddings(self):
         return self.score
-
+    
     def enable_input_require_grads(self):
-        """
-        Enables the gradients for the input embeddings. This is useful for fine-tuning adapter weights while keeping
-        the model weights fixed.
-        """
         def make_inputs_require_grads(module, input, output):
             output.requires_grad_(True)
-
         embedding_layer = self.model.language_model.embed_tokens
         self._require_grads_hook = embedding_layer.register_forward_hook(make_inputs_require_grads)
-  
+
     def forward(
         self,
         input_ids=None, attention_mask=None, position_ids=None,
-        inputs_embeds=None, pixel_values=None, past_key_values=None,
+        inputs_embeds=None,
+        pixel_values=None, past_key_values=None,
         labels=None, use_cache=None, output_attentions=None,
         output_hidden_states=None, return_dict=None,
     ):
         return_dict = (return_dict if return_dict is not None
                        else self.config.use_return_dict)
 
-        outputs = self.model(
+        outputs = self.model.language_model(
             input_ids=input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
             inputs_embeds=inputs_embeds,
-            pixel_values=pixel_values,
             past_key_values=past_key_values,
             use_cache=use_cache,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=True,
         )
+        # --------------------------------------------------------
 
         hidden_states = outputs.last_hidden_state
-        pooled_logits = self.score(hidden_states)
-        pooled_logits = self.dropout(pooled_logits)
+        token_logits = self.score(hidden_states)
+        token_logits = self.dropout(token_logits)
 
         pad_id = getattr(self.config, "pad_token_id",
-                         getattr(_txt(self.config), "pad_token_id", None))
-
-        pooled = _pool_last(pooled_logits, input_ids, pad_id)
+                         getattr(getattr(self.config, "text_config", self.config), "pad_token_id", None))
+        pooled = _pool_last(token_logits, input_ids, pad_id)
         loss = _compute_loss(self.config, pooled, labels, self.num_labels)
 
         if not return_dict:
