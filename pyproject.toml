@@ -1,14 +1,9 @@
 [build-system]
 # Should be mirrored in requirements/build.txt
 requires = [
-    "cmake>=3.26",
-    "ninja",
     "packaging>=24.2",
     "setuptools>=77.0.3,<80.0.0",
     "setuptools-scm>=8.0",
-    "torch==2.7.0",
-    "wheel",
-    "jinja2"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -16,8 +11,8 @@ build-backend = "setuptools.build_meta"
 name = "unsloth"
 description = "2-5X faster LLM finetuning"
 readme = "README.md"
-requires-python = ">=3.9,<3.13"
-dynamic = [ "version", "dependencies", "optional-dependencies"]
+requires-python = ">=3.9"
+dynamic = ["version", "dependencies", "optional-dependencies"]
 license = { file = "LICENSE" }
 keywords = ["ai", "llm",]
 authors = [
