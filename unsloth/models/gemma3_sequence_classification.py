@@ -233,11 +233,11 @@ class Gemma3nForSequenceClassification(Gemma3nPreTrainedModel):
     def get_output_embeddings(self):
         return self.score
     
-    #def enable_input_require_grads(self):
-    #    def make_inputs_require_grads(module, input, output):
-    #        output.requires_grad_(True)
-    #    embedding_layer = self.model.language_model.embed_tokens
-    #    self._require_grads_hook = embedding_layer.register_forward_hook(make_inputs_require_grads)
+    def enable_input_require_grads(self):
+        def make_inputs_require_grads(module, input, output):
+            output.requires_grad_(True)
+        embedding_layer = self.model.language_model.embed_tokens
+        self._require_grads_hook = embedding_layer.register_forward_hook(make_inputs_require_grads)
 
     def forward(
         self,
@@ -261,7 +261,6 @@ class Gemma3nForSequenceClassification(Gemma3nPreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=True,
         )
-        # --------------------------------------------------------
 
         hidden_states = outputs.last_hidden_state
         token_logits = self.score(hidden_states)
