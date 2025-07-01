@@ -279,31 +279,34 @@ class Gemma3nForSequenceClassification(Gemma3nModel):
 
 
 # ───────────────────── Gemma 3n text-only variant (1 B) ────────────────────────
-class Gemma3nTextForSequenceClassification(Gemma3nPreTrainedModel):
+class Gemma3nForSequenceClassification(Gemma3nPreTrainedModel):
     """
-    **Wraps** Gemma3TextModel in `self.model` – keeps `model.*`
+    **Wraps** Gemma3nModel in `self.model` – keeps `model.*`
     prefixes so every pretrained weight loads.
     """
-    config_class = Gemma3nTextConfig
+    config_class = Gemma3nConfig
+    _no_split_modules = ["GemmaBlock"]
     keys_to_ignore_at_inference = ["past_key_values"]
 
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.model = Gemma3nTextModel(config)
+
+        self.model = Gemma3nModel(config)
+        
         self.score = nn.Linear(_txt(config).hidden_size, self.num_labels, bias=False)
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
-    def set_input_embeddings(self, value):
-        self.model.set_input_embeddings(value)
-
     def get_input_embeddings(self):
         return self.model.get_input_embeddings()
 
+    def set_input_embeddings(self, value):
+        self.model.set_input_embeddings(value)
+
     def get_output_embeddings(self):
         return self.score
-    
+
     def enable_input_require_grads(self):
         """
         Enables the gradients for the input embeddings. This is useful for fine-tuning adapter weights while keeping
@@ -311,19 +314,15 @@ class Gemma3nTextForSequenceClassification(Gemma3nPreTrainedModel):
         """
         def make_inputs_require_grads(module, input, output):
             output.requires_grad_(True)
-        
-        # Access embeddings through the language model
-        if hasattr(self, 'model'):
-            embedding_layer = self.model.embed_tokens
-        elif hasattr(self, 'language_model'):
-            embedding_layer = self.language_model.embed_tokens
-        self._require_grads_hook = embedding_layer.register_forward_hook(make_inputs_require_grads)
 
+        embedding_layer = self.model.language_model.embed_tokens
+        self._require_grads_hook = embedding_layer.register_forward_hook(make_inputs_require_grads)
+  
     def forward(
         self,
         input_ids=None, attention_mask=None, position_ids=None,
-        inputs_embeds=None, past_key_values=None, labels=None,
-        use_cache=None, output_attentions=None,
+        inputs_embeds=None, pixel_values=None, past_key_values=None,
+        labels=None, use_cache=None, output_attentions=None,
         output_hidden_states=None, return_dict=None,
     ):
         return_dict = (return_dict if return_dict is not None
@@ -334,15 +333,22 @@ class Gemma3nTextForSequenceClassification(Gemma3nPreTrainedModel):
             attention_mask=attention_mask,
             position_ids=position_ids,
             inputs_embeds=inputs_embeds,
+            pixel_values=pixel_values,
             past_key_values=past_key_values,
             use_cache=use_cache,
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=True,
         )
-        token_logits = self.score(outputs.last_hidden_state)
-        token_logits = self.dropout(token_logits)
-        pooled = _pool_last(token_logits, input_ids, self.config.pad_token_id)
+
+        hidden_states = outputs.last_hidden_state
+        pooled_logits = self.score(hidden_states)
+        pooled_logits = self.dropout(pooled_logits)
+
+        pad_id = getattr(self.config, "pad_token_id",
+                         getattr(_txt(self.config), "pad_token_id", None))
+
+        pooled = _pool_last(pooled_logits, input_ids, pad_id)
         loss = _compute_loss(self.config, pooled, labels, self.num_labels)
 
         if not return_dict:
@@ -350,12 +356,11 @@ class Gemma3nTextForSequenceClassification(Gemma3nPreTrainedModel):
             return ((loss,) + out) if loss is not None else out
 
         return SequenceClassifierOutputWithPast(
-            loss=loss, logits=pooled,
+            loss=loss,
+            logits=pooled,
             past_key_values=outputs.past_key_values,
-            hidden_states=outputs.hidden_states
-                if output_hidden_states else None,
-            attentions=outputs.attentions
-                if output_attentions else None,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
         )
 
 # ───────────────────── register with HF factory ───────────────────────
