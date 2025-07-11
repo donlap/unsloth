@@ -18,6 +18,8 @@ from transformers import (
 )
 from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 
+import bitsandbytes as bnb
+
 
 # ───────────────────── helpers ─────────────────────────────────────────
 def _txt(cfg):                              # text sub-config
@@ -58,7 +60,7 @@ class Gemma3ForSequenceClassification(Gemma3Model):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.score = nn.Linear(_txt(config).hidden_size, self.num_labels, bias=False)
+        self.score = bnb.nn.Linear8bitLt(_txt(config).hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
@@ -136,7 +138,7 @@ class Gemma3TextForSequenceClassification(Gemma3PreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.model = Gemma3TextModel(config)
-        self.score = nn.Linear(_txt(config).hidden_size, self.num_labels, bias=False)
+        self.score = bnb.nn.Linear8bitLt(_txt(config).hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
@@ -220,7 +222,7 @@ class Gemma3nForSequenceClassification(Gemma3nPreTrainedModel):
         self.model = Gemma3nModel(config)
 
         text_config = getattr(config, "text_config", config)
-        self.score = nn.Linear(text_config.hidden_size, self.num_labels, bias=False)
+        self.score = bnb.nn.Linear8bitLt(text_config.hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
@@ -297,7 +299,7 @@ class Gemma3nTextForSequenceClassification(Gemma3nPreTrainedModel):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.model = Gemma3nTextModel(config)
-        self.score = nn.Linear(_txt(config).hidden_size, self.num_labels, bias=False)
+        self.score = bnb.nn.Linear8bitLt(_txt(config).hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
