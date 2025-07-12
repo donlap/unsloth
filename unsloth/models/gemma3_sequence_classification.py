@@ -61,7 +61,6 @@ class Gemma3ForSequenceClassification(Gemma3Model):
         super().__init__(config)
         self.num_labels = config.num_labels
         self.score = bnb.nn.Linear8bitLt(_txt(config).hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
-        self.score = self.score.cuda()
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
@@ -140,7 +139,6 @@ class Gemma3TextForSequenceClassification(Gemma3PreTrainedModel):
         self.num_labels = config.num_labels
         self.model = Gemma3TextModel(config)
         self.score = bnb.nn.Linear8bitLt(_txt(config).hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
-        self.score = self.score.cuda()
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
@@ -225,7 +223,6 @@ class Gemma3nForSequenceClassification(Gemma3nPreTrainedModel):
 
         text_config = getattr(config, "text_config", config)
         self.score = bnb.nn.Linear8bitLt(text_config.hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
-        self.score = self.score.cuda()
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
@@ -303,7 +300,6 @@ class Gemma3nTextForSequenceClassification(Gemma3nPreTrainedModel):
         self.num_labels = config.num_labels
         self.model = Gemma3nTextModel(config)
         self.score = bnb.nn.Linear8bitLt(_txt(config).hidden_size, self.num_labels, bias=False, has_fp16_weights=False)
-        self.score = self.score.cuda()
         self.dropout = nn.Dropout(config.classifier_dropout if hasattr(config, 'classifier_dropout') else 0.1)
         self.post_init()
 
